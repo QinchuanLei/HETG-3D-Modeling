@@ -56,4 +56,4 @@ python test.py --name [experiment name] --class_id [class id] --dataset_mode sha
 ```
 About file structures of our ShapeNet-Sketch dataset, please see the dataset definition in `data/shapenet_sketch_dataset.py`.
 ## Acknowledgments
-Our code is inspired by https://github.com/QinchuanLei/HETG-3D-Modeling
+Our code is inspired by [sketch2model](https://github.com/bennyguo/sketch2model)

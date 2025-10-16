@@ -4,6 +4,8 @@ Hierarchical Encoding and Text-Guided 3D Modeling from Single Free-Hand Sketches
 # Hierarchical Sketch Encoding and Text-Guided 3D Modeling: A Novel Approach for Single Free-Hand Sketch Reconstruction
 
 Official PyTorch implementation of paper `Hierarchical Sketch Encoding and Text-Guided 3D Modeling: A Novel Approach for Single Free-Hand Sketch Reconstruction`, submitted to The Visual Computer.
+<img width="2418" height="1072" alt="image" src="https://github.com/user-attachments/assets/f3affccb-cad4-409b-abad-cb68dfad47c2" />
+
 
 ## Environments
 - `git clone --recursive [https://github.com/bennyguo/sketch2model](https://github.com/QinchuanLei/HETG-3D-Modeling).git`

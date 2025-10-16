@@ -286,7 +286,7 @@ class ViewDisentangleNetwork(nn.Module):
                 'zv': zv,
                 'zv_recon': zv_recon,
                 'sd_score': sd_score,
-                'zv_text_feat': zv_text_feat  # 文本视角编码
+                'zv_text_feat': zv_text_feat  
             }
             
             if view_rand is not None:

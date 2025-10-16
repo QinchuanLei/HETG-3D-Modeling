@@ -58,4 +58,4 @@ python test.py --name [experiment name] --class_id [class id] --dataset_mode sha
 ```
 About file structures of our ShapeNet-Sketch dataset, please see the dataset definition in `data/shapenet_sketch_dataset.py`.
 ## Acknowledgments
-Our code is inspired by [sketch2model](https://github.com/bennyguo/sketch2model)If you have any questions about the implementation or the paper, please feel free to open an issue or contact me at 3230002357@student.must.edu.mo.
+Our code is inspired by sketch2model.If you have any questions about the implementation or the paper, please feel free to open an issue or contact me at 3230002357@student.must.edu.mo.

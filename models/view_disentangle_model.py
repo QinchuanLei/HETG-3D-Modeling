@@ -21,7 +21,7 @@ from .networks import init_net
 from .criterions import *
 from utils.utils import tensor2im
 import sys
-sys.path.append(r"/media/ddc/新加卷/lqc/sketch2model/models/")
+
 
 import kornia
 
@@ -68,16 +68,16 @@ class ConvNeXtTinyMultiScaleEncoder(nn.Module):
         self.project4 = nn.Conv2d(768, 128, kernel_size=1)
 
     def forward(self, x):
-        x = self.backbone.features[0](x)      # stem
-        x = self.backbone.features[1](x)      # stage1
-        x = self.backbone.features[2](x)      # downsample1
-        x2 = self.backbone.features[3](x)     # stage2 blocks → 输出通道 192 28 28
+        x = self.backbone.features[0](x)      
+        x = self.backbone.features[1](x)     
+        x = self.backbone.features[2](x)     
+        x2 = self.backbone.features[3](x)     
 
-        x = self.backbone.features[4](x2)     # downsample2
-        x3 = self.backbone.features[5](x)     # stage3 blocks → 输出通道 384 14 14
+        x = self.backbone.features[4](x2)    
+        x3 = self.backbone.features[5](x)     
 
-        x = self.backbone.features[6](x3)     # downsample3
-        x4 = self.backbone.features[7](x)     # stage4 blocks → 输出通道 768 7 7
+        x = self.backbone.features[6](x3)     
+        x4 = self.backbone.features[7](x)    
 
         p2 = self.project2(x2)
         p3 = self.project3(x3)
@@ -86,8 +86,8 @@ class ConvNeXtTinyMultiScaleEncoder(nn.Module):
         p2 = F.adaptive_avg_pool2d(p2, output_size=(7, 7))
         p3 = F.adaptive_avg_pool2d(p3, output_size=(7, 7))
 
-        fused = torch.cat([p2, p3, p4], dim=1)  # [B, 128*3, 7, 7]
-        out = fused.reshape(fused.size(0), -1)  # 更鲁棒的方式
+        fused = torch.cat([p2, p3, p4], dim=1)  
+        out = fused.reshape(fused.size(0), -1)  
         return out
 
 
@@ -532,10 +532,10 @@ class ViewDisentangleModel(BaseModel):
 
     def optimize_parameters(self):
         """Update network weights; it will be called in every training iteration."""
-        self.forward()               # first call forward to calculate intermediate results
-        self.optimizer.zero_grad()   # clear network G's existing gradients
-        self.backward()              # calculate gradients for network G
-        self.optimizer.step()        # update gradients for network G
+        self.forward()               
+        self.optimizer.zero_grad()   
+        self.backward()              
+        self.optimizer.step()        
     
     def visualize_train(self, it):
         """Save generated meshes every opt.vis_freq training steps."""

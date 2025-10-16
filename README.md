@@ -1,8 +1,11 @@
 # Hierarchical Sketch Encoding and Text-Guided 3D Modeling: A Novel Approach for Single Free-Hand Sketch Reconstruction
+
+Official PyTorch implementation of paper `Hierarchical Sketch Encoding and Text-Guided 3D Modeling: A Novel Approach for Single Free-Hand Sketch Reconstruction`, submitted to The Visual Computer.
+
 <img width="2572" height="1216" alt="image" src="https://github.com/user-attachments/assets/62158b5c-18b0-4468-b356-cfe276c998ad" />
 
 
-Official PyTorch implementation of paper `Hierarchical Sketch Encoding and Text-Guided 3D Modeling: A Novel Approach for Single Free-Hand Sketch Reconstruction`, submitted to The Visual Computer.
+
 <img width="2418" height="1072" alt="image" src="https://github.com/user-attachments/assets/f3affccb-cad4-409b-abad-cb68dfad47c2" />
 
 

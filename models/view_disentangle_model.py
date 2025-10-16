@@ -21,7 +21,6 @@ from .networks import init_net
 from .criterions import *
 from utils.utils import tensor2im
 import sys
-# 将包含parent包的路径添加进系统路径
 sys.path.append(r"/media/ddc/新加卷/lqc/sketch2model/models/")
 
 import kornia
@@ -55,95 +54,10 @@ class GradientReversalLayer(nn.Module):
 
     def forward(self, x):
         return gradient_reversal.apply(x, self.lambda_)
-class EfficientNetEncoder(nn.Module):
-    def __init__(self, dim_in=3, pretrained=True):
-        super(EfficientNetEncoder, self).__init__()
-        assert dim_in == 3, "Input dimension must be 3 (RGB image)"
-        print('EfficientNet-B0 pretrained:', pretrained)
-        
-        # 加载 EfficientNet-B0 作为骨干网络
-        self.backbone = torchvision.models.efficientnet_b0(weights=torchvision.models.EfficientNet_B0_Weights.DEFAULT if pretrained else None)
-        
-        # 移除全局平均池化层和全连接层
-        self.backbone.avgpool = nn.Identity()
-        self.backbone.classifier = nn.Identity()
-        
-        # 额外存储中间特征
-        self.x = {}
-    
-    def forward(self, x):
-        batch_size = x.shape[0]
-        
-        # EfficientNet 的 `features` 提取部分
-        x0 = self.backbone.features[0](x)  # Stem 层
-        x1 = self.backbone.features[1](x0)
-        x2 = self.backbone.features[2](x1)
-        x3 = self.backbone.features[3](x2)
-        x4 = self.backbone.features[4](x3)
-        x5 = self.backbone.features[5](x4)
-        x6 = self.backbone.features[6](x5)
-        x7 = self.backbone.features[7](x6)  # 最后一个层
-        
-        # 展平输出
-        x = x7.view(batch_size, -1)
-        return x
-class EfficientNetMultiScaleEncoder(nn.Module):
-    def __init__(self, dim_in=3, pretrained=True, out_dim=512):
-        super().__init__()
-        assert dim_in == 3, "Input must be 3-channel RGB"
-        
-        # 载入预训练EfficientNet-B0
-        self.backbone = torchvision.models.efficientnet_b0(
-            weights=torchvision.models.EfficientNet_B0_Weights.DEFAULT if pretrained else None)
-        
-        # 去掉全局池化和分类层
-        self.backbone.avgpool = nn.Identity()
-        self.backbone.classifier = nn.Identity()
-        
-        # 多尺度融合后统一输出维度的FC层
-        # EfficientNet最后三个阶段输出通道分别是：
-        # features[3]输出 c=40，features[5]输出 c=112，features[7]输出 c=1280
-        # 先对所有特征投影到统一维度后再融合
-        self.project3 = nn.Conv2d(40, 128, kernel_size=1)
-        self.project5 = nn.Conv2d(112, 128, kernel_size=1)
-        self.project7 = nn.Conv2d(320, 128, kernel_size=1)
-        
-        self.fc = nn.Linear(128 * 3 * 7 * 7, out_dim)  # 7x7是EfficientNet最后特征图尺寸，可能需根据输入调整
-        
-    def forward(self, x):
-        # 提取各层特征
-        x0 = self.backbone.features[0](x)  # stem
-        x1 = self.backbone.features[1](x0)
-        x2 = self.backbone.features[2](x1)
-        x3 = self.backbone.features[3](x2)  # c=40
-        x4 = self.backbone.features[4](x3)
-        x5 = self.backbone.features[5](x4)  # c=112
-        x6 = self.backbone.features[6](x5)
-        x7 = self.backbone.features[7](x6)  # c=320
-        
-        # 投影到相同通道数
-        p3 = self.project3(x3)  # shape: [B,128,H3,W3]
-        p5 = self.project5(x5)  # shape: [B,128,H5,W5]
-        p7 = self.project7(x7)  # shape: [B,128,H7,W7]
-        
-        # 上采样到相同尺寸（以最小尺寸为准，或固定尺寸，这里选7x7）
-        p3_up = F.interpolate(p3, size=(7,7), mode='bilinear', align_corners=False)
-        p5_up = F.interpolate(p5, size=(7,7), mode='bilinear', align_corners=False)
-        # p7本身是7x7，直接用
-        
-        # 拼接通道维度
-        fused = torch.cat([p3_up, p5_up, p7], dim=1)  # [B, 128*3, 7, 7]
-        
-        # 展平
-        fused_flat = fused.view(fused.size(0), -1)
-        
-        
-        return fused_flat
 class ConvNeXtTinyMultiScaleEncoder(nn.Module):
     def __init__(self, dim_in=3, pretrained=True, out_dim=512):
         super().__init__()
         assert dim_in == 3, "ConvNeXt 输入必须为 RGB (3通道)"
-        print('使用 ConvNeXt-Tiny 作为骨干网络，预训练:', pretrained)
 
         self.backbone = torchvision.models.convnext_tiny(
             weights=torchvision.models.ConvNeXt_Tiny_Weights.DEFAULT if pretrained else None
@@ -152,8 +66,6 @@ class ConvNeXtTinyMultiScaleEncoder(nn.Module):
         self.project2 = nn.Conv2d(192, 128, kernel_size=1)
         self.project3 = nn.Conv2d(384, 128, kernel_size=1)
         self.project4 = nn.Conv2d(768, 128, kernel_size=1)
-        # 融合后的线性层，输出定长特征
-        # self.fc = nn.Linear(128 * 3 * 7 * 7, out_dim)  # 默认特征图大小为 7x7（视输入而定）
 
     def forward(self, x):
         x = self.backbone.features[0](x)      # stem
@@ -167,121 +79,16 @@ class ConvNeXtTinyMultiScaleEncoder(nn.Module):
         x = self.backbone.features[6](x3)     # downsample3
         x4 = self.backbone.features[7](x)     # stage4 blocks → 输出通道 768 7 7
 
-        # 通道映射
         p2 = self.project2(x2)
         p3 = self.project3(x3)
         p4 = self.project4(x4)
 
-        # 尺寸统一（目标尺寸为 7x7）
         p2 = F.adaptive_avg_pool2d(p2, output_size=(7, 7))
         p3 = F.adaptive_avg_pool2d(p3, output_size=(7, 7))
 
-        # 拼接后展平
         fused = torch.cat([p2, p3, p4], dim=1)  # [B, 128*3, 7, 7]
         out = fused.reshape(fused.size(0), -1)  # 更鲁棒的方式
         return out
-# class ConvNeXtTinyMultiScaleEncoder(nn.Module):
-#     def __init__(self, dim_in=3, pretrained=True, out_dim=512):
-#         super().__init__()
-#         assert dim_in == 3, "ConvNeXt 输入必须为 RGB (3通道)"
-#         print('使用 ConvNeXt-Tiny 作为骨干网络，预训练:', pretrained)
-
-#         self.backbone = torchvision.models.convnext_tiny(
-#             weights=torchvision.models.ConvNeXt_Tiny_Weights.DEFAULT if pretrained else None
-#         )
-
-#         self.project2 = nn.Conv2d(192, 128, kernel_size=1)
-#         self.project3 = nn.Conv2d(192, 128, kernel_size=1)
-#         self.project4 = nn.Conv2d(384, 128, kernel_size=1)
-
-#         # 融合后的线性层，输出定长特征
-#         # self.fc = nn.Linear(128 * 3 * 7 * 7, out_dim)  # 默认特征图大小为 7x7（视输入而定）
-
-#     def forward(self, x):
-#         # # stem + stage 0
-#         x = self.backbone.features[0](x)  # stem
-#         x = self.backbone.features[1](x)  # stage 1
-
-#         x2 = self.backbone.features[2](x)  # stage 2 (192)
-#         x3 = self.backbone.features[3](x2)  # stage 3 (192)
-#         x4 = self.backbone.features[4](x3)  # stage 4 (384)
-
-#         # 通道映射
-#         p2 = self.project2(x2)
-#         p3 = self.project3(x3)
-#         p4 = self.project4(x4)
-
-#         # 尺寸统一（目标尺寸为 7x7）
-#         p2 = F.adaptive_avg_pool2d(p2, output_size=(7, 7))
-#         p3 = F.adaptive_avg_pool2d(p3, output_size=(7, 7))
-#         p4 = F.adaptive_avg_pool2d(p4, output_size=(7, 7))
-
-#         # 拼接后展平
-#         fused = torch.cat([p2, p3, p4], dim=1)  # [B, 128*3, 7, 7]
-#         out = fused.reshape(fused.size(0), -1)  # 更鲁棒的方式
-#         return out
-class ConvNeXtTinyEncoder(nn.Module):
-    def __init__(self, dim_in=3, pretrained=True, out_dim=1024):
-        super().__init__()
-        assert dim_in == 3, "ConvNeXt 输入必须为 RGB (3通道)"
-        print('使用 ConvNeXt-Tiny 作为骨干网络，预训练:', pretrained)
-
-        self.backbone = torchvision.models.convnext_tiny(
-            weights=torchvision.models.ConvNeXt_Tiny_Weights.DEFAULT if pretrained else None
-        )
-
-        # 只使用 Stage4 输出特征（通道 768），投影为 128 通道
-        self.project = nn.Conv2d(768, 128, kernel_size=1)
-
-        # 输出线性层，将 128×7×7 → out_dim
-        self.fc = nn.Linear(768 * 7 * 7, out_dim)
-
-    def forward(self, x):
-        # Backbone forward（从 stem 到 stage4）
-        x = self.backbone.features[0](x)   # stem
-        x = self.backbone.features[1](x)   # stage1
-        x = self.backbone.features[2](x)   # downsample1
-        x = self.backbone.features[3](x)   # stage2
-        x = self.backbone.features[4](x)   # downsample2
-        x = self.backbone.features[5](x)   # stage3
-        x = self.backbone.features[6](x)   # downsample3
-        x = self.backbone.features[7](x)   # stage4 → 输出: [B, 768, 7, 7]
-
-        # 通道映射
-        # x = self.project(x)  # → [B, 128, 7, 7]
-
-        # 展平 + 全连接
-        x = x.reshape(x.size(0), -1)  # → [B, 128*7*7]
-        x = self.fc(x)                # → [B, out_dim]
-
-        return x
-class ResNet18Encoder(nn.Module):
-    def __init__(self, dim_in, pretrained):
-        super(ResNet18Encoder, self).__init__()
-        assert(dim_in == 3)
-        print('ResNet18 pretrained:', pretrained)
-        self.backbone = torchvision.models.resnet18(pretrained=pretrained)
-        self.backbone.avgpool = nn.Identity()
-        self.backbone.fc = nn.Identity()
-        self.x = {}
-
-    def forward(self, x):
-        batch_size = x.shape[0]
-        x0 = self.backbone.conv1(x)
-        x0 = self.backbone.bn1(x0)
-        x0 = self.backbone.relu(x0)
-        x0 = self.backbone.maxpool(x0)
-
-        x1 = self.backbone.layer1(x0)
-        x2 = self.backbone.layer2(x1)
-        x3 = self.backbone.layer3(x2)
-        x4 = self.backbone.layer4(x3)  
-
-        self.x[0], self.x[1], self.x[2], self.x[3], self.x[4] = x0, x1, x2, x3, x4
-
-        x = x4
-        x = x.view(batch_size, -1)
-        return x
 
 
 class Encoder(nn.Module):
@@ -415,12 +222,11 @@ class ViewDisentangleNetwork(nn.Module):
     def __init__(self, opt):
         super().__init__()
         self.opt = opt
-        # self.feature_extractor = ResNet18Encoder(dim_in=opt.dim_in, pretrained=True)
-        # self.encoder = Encoder(dim_in=512 * 7 * 7, dim_hidden=2048, dim_s=1024, dim_v=opt.view_dim, normalize=True)
+ 
         self.feature_extractor = ConvNeXtTinyMultiScaleEncoder()
         self.encoder = Encoder(dim_in=128*3* 7 * 7, dim_hidden=2048, dim_s=1024, dim_v=opt.view_dim, normalize=True)
         self.view_encoder = ViewEncoder(dim_hidden=opt.view_dim, dim_out=opt.view_dim, normalize=True)
-        # self.view_encoder = TransformerViewEncoder(opt.view_dim,dim_hidden=opt.view_dim)
+
         self.view_decoder = ViewDecoder(dim_in=opt.view_dim, dim_hidden=opt.view_dim//2)
         self.decoder = Decoder(dim_in=1024, dim_shape=512, dim_view=opt.view_dim, dim_hidden=1024, normalize=True)
 

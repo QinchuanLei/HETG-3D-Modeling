@@ -55,3 +55,5 @@ python test.py --name [experiment name] --class_id [class id] --test_split test
 python test.py --name [experiment name] --class_id [class id] --dataset_mode shapenet_sketch --dataset_root load/shapenet-sketch
 ```
 About file structures of our ShapeNet-Sketch dataset, please see the dataset definition in `data/shapenet_sketch_dataset.py`.
+## Acknowledgments
+Our code is inspired by https://github.com/QinchuanLei/HETG-3D-Modeling

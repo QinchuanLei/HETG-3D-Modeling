@@ -71,8 +71,8 @@ if __name__ == '__main__':
             with torch.no_grad():
                 for class_id in opt.class_id:
                     print(f"\n[Validation] Evaluating class: {class_id}")
-                    opt_single = copy.deepcopy(opt)  # 避免修改原始 opt
-                    opt_single.class_id = [class_id]  # 注意要是 list，因为 create_dataset 可能 expects list
+                    opt_single = copy.deepcopy(opt) 
+                    opt_single.class_id = [class_id]  
                     dataset_val = create_dataset(opt_single, mode='val', shuffle=False)
                     
                     model.validate(epoch, dataset_val, phase=f'val')
@@ -95,8 +95,8 @@ if __name__ == '__main__':
             with torch.no_grad():
                 for class_id in opt.class_id:
                     print(f"\n[Test] Evaluating class: {class_id}")
-                    opt_single = copy.deepcopy(opt)  # 避免修改原始 opt
-                    opt_single.class_id = [class_id]  # 注意要是 list，因为 create_dataset 可能 expects list
+                    opt_single = copy.deepcopy(opt)  
+                    opt_single.class_id = [class_id]  
                     dataset_val = create_dataset(opt_single, mode='test', shuffle=False)
                                 
                     model.test(epoch, dataset_val)
